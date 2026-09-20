@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kindle 首页</title>
+    <style>
+        /* 全局重置，适配水墨屏 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            /* 禁用所有动画和过渡，避免残影 */
+            transition: none !important;
+            animation: none !important;
+        }
+
+        body {
+            font-family: "宋体", serif;
+            background: #ffffff;
+            color: #000000;
+            /* 适配6寸Kindle，居中显示 */
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            /* 禁用文字抗锯齿，水墨屏显示更锐利 */
+            -webkit-font-smoothing: none;
+        }
+
+        /* Tab导航栏 */
+        .tab-nav {
+            display: flex;
+            border-bottom: 2px solid #000;
+            margin-bottom: 30px;
+        }
+
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            font-size: 20px;
+            cursor: pointer;
+            border: none;
+            background: #fff;
+            font-family: inherit;
+        }
+
+        .tab-item.active {
+            font-weight: bold;
+            background: #000;
+            color: #fff;
+        }
+
+        /* 页面内容区 */
+        .tab-page {
+            display: none;
+        }
+
+        .tab-page.active {
+            display: block;
+        }
+
+        /* 首页时间区域 */
+        .home-time {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .time-text {
+            display: flex;
+                justify-content: center;
+            font-size: 72px;
+            font-weight: bold;
+            letter-spacing: 4px;
+        }
+
+        .date-text {
+            font-size: 24px;
+            margin-top: 10px;
+        }
+
+        /* 语录卡片 */
+        .quote-box {
+            margin-top: 60px;
+            padding: 24px;
+            border: 2px solid #000;
+            text-align: center;
+        }
+
+        .quote-text {
+            font-size: 22px;
+            line-height: 1.6;
+        }
+
+        .quote-author {
+            margin-top: 16px;
+            font-size: 18px;
+            text-align: right;
+        }
+
+        /* 备用页面通用样式 */
+        .other-page {
+            text-align: center;
+            padding: 40px 0;
+            font-size: 24px;
+            line-height: 1.8;
+        }
+        /* 道具卡片整体 */
+        .item-card {
+            text-align: center;
+            padding: 30px 20px;
+            border: 2px solid #000;
+            margin-top: 20px;
+        }
+
+        /* 道具图片容器 */
+        .item-img-box {
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .item-img-box img {
+            max-width: 320px;
+            height: auto;
+            /* 水墨屏适配：强制高对比，去除杂色 */
+            filter: contrast(130%) brightness(100%);
+            border: none;
+        }
+
+        /* 道具名称 */
+        .item-name {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        /* 道具描述 */
+        .item-desc {
+            font-size: 20px;
+            line-height: 1.7;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        /* 道具出处 */
+        .item-source {
+            font-size: 16px;
+            text-align: right;
+            color: #000;
+            border-top: 1px solid #000;
+            padding-top: 12px;
+            margin-bottom: 24px;
+        }
+
+        /* 切换按钮 */
+        .refresh-btn {
+            padding: 10px 28px;
+            font-size: 18px;
+            border: 2px solid #000;
+            background: #fff;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Tab导航 -->
+    <div class="tab-nav">
+        <button class="tab-item active" data-page="home">首页</button>
+        <button class="tab-item" data-page="page2">待办</button>
+        <button class="tab-item" data-page="page3">备忘</button>
+    </div>
+
+    <!-- 首页 -->
+    <div class="tab-page active" id="home">
+        <div class="home-time">
+            <div class="time-text" id="time">
+                 <span class="digit-number" id="hour">0</span>
+                 <div class="clock-colon">:</div>
+                 <span class="digit-number" id="minute">0</span></div>
+            <div class="date-text" id="date">
+                 <span class="digit-number" id="month-number"></span>
+                 <span class="digit-number" id="day-number"></span>日
+                 <span class="digit-number" id="week-number"></span>
+                 <div class="date-lunar" id="lunar-date">二月廿二</div>
+        </div>
+        <div class="quote-box">
+            <div class="quote-text" id="quote">人生天地之间，若白驹过隙，忽然而已。</div>
+            <div class="quote-author">—— 庄子</div>
+        </div>
+        <!-- 道具 -->
+        <div class="item-card">
+            <!-- 道具图片 -->
+            <div class="item-img-box">
+                <img id="itemImg" src="images/item-zhutingting.png" alt="道具图示" />
+            </div>
+            <!-- 道具名称 -->
+            <div class="item-name" id="itemName">竹蜻蜓</div>
+            <!-- 道具功能描述 -->
+            <div class="item-desc" id="itemDesc">戴在头上就能以时速80公里自由飞行，是全作品中出场率最高的道具。</div>
+            <!-- 道具出处 -->
+            <div class="item-source" id="itemSource">出处：《瓢虫漫画哆啦A梦》第1卷</div>
+            <!-- 切换按钮 -->
+            <button class="refresh-btn" id="refreshItem">换一个道具</button>
+        </div>
+
+    </div>
+
+    <!-- 页面二：待办 -->
+    <div class="tab-page" id="page2">
+        <div class="other-page">
+            待办事项页面<br>
+            可在此添加每日任务清单
+        </div>
+    </div>
+
+    <!-- 页面三：备忘 -->
+    <div class="tab-page" id="page3">
+        <div class="other-page">
+            备忘页面<br>
+            可自行扩展内容
+        </div>
+    </div>
+
+    <script>
+        // Tab切换功能
+        var tabItems = document.querySelectorAll('.tab-item');
+        var tabPages = document.querySelectorAll('.tab-page');
+
+        for (var i = 0; i < tabItems.length; i++) {
+            tabItems[i].addEventListener('click', function() {
+                var targetPage = this.getAttribute('data-page');
+                
+                // 切换Tab选中状态
+                for (var j = 0; j < tabItems.length; j++) {
+                    tabItems[j].classList.remove('active');
+                }
+                this.classList.add('active');
+
+                // 切换页面显示
+                for (var k = 0; k < tabPages.length; k++) {
+                    tabPages[k].classList.remove('active');
+                }
+                document.getElementById(targetPage).classList.add('active');
+            });
+        }
+        
+    /* ── Clock ──────────────────────────────────────────── */
+    var WEEKDAYS = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+    var MONTHS   = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+    var LUNAR_MONTHS = ['正月','二月','三月','四月','五月','六月','七月','八月','九月','十月','冬月','腊月'];
+    var LUNAR_DAYS = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
+    '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
+    '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+
+    var MS_PER_DAY = 86400000;
+    /* 农历查表：1900–2100 标准数据，每年一个十六进制（高位月份大小 + 低4位闰月）。
+    纯本地位运算，正确处理闰月，2100 年前无需维护。基准日 1900-01-31 = 农历正月初一。 */
+    var LUNAR_INFO = [
+    0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
+    0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
+    0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,
+    0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,
+    0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,
+    0x06ca0,0x0b550,0x15355,0x04da0,0x0a5d0,0x14573,0x052d0,0x0a9a8,0x0e950,0x06aa0,
+    0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,
+    0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b6a0,0x195a6,
+    0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,
+    0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x055c0,0x0ab60,0x096d5,0x092e0,
+    0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,
+    0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
+    0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
+    0x05aa0,0x076a3,0x096d0,0x04bd7,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
+    0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0,
+    0x14b63,0x09370,0x049f8,0x04970,0x064b0,0x168a6,0x0ea50,0x06b20,0x1a6c4,0x0aae0,
+    0x0a2e0,0x0d2e3,0x0c960,0x0d557,0x0d4a0,0x0da50,0x05d55,0x056a0,0x0a6d0,0x055d4,
+    0x052d0,0x0a9b8,0x0a950,0x0b4a0,0x0b6a6,0x0ad50,0x055a0,0x0aba4,0x0a5b0,0x052b0,
+    0x0b273,0x06930,0x07337,0x06aa0,0x0ad50,0x14b55,0x04b60,0x0a570,0x054e4,0x0d160,
+    0x0e968,0x0d520,0x0daa0,0x16aa6,0x056d0,0x04ae0,0x0a9d4,0x0a2d0,0x0d150,0x0f252,
+    0x0d520
+    ];
+    function lLeapMonth(y) { return LUNAR_INFO[y - 1900] & 0xf; }
+    function lLeapDays(y) { return lLeapMonth(y) ? ((LUNAR_INFO[y - 1900] & 0x10000) ? 30 : 29) : 0; }
+    function lMonthDays(y, m) { return (LUNAR_INFO[y - 1900] & (0x10000 >> m)) ? 30 : 29; }
+    function lYearDays(y) {
+    var sum = 348;
+    for (var i = 0x8000; i > 0x8; i >>= 1) { sum += (LUNAR_INFO[y - 1900] & i) ? 1 : 0; }
+    return sum + lLeapDays(y);
+    }
+    var tzOffsetMs = 8 * 3600000;
+    var _lunarCache = { day: -1, label: '' };
+
+    function getLocalDate() { return new Date(Date.now() + tzOffsetMs); }
+
+    function toLunarLabel(date) {
+    var y = date.getUTCFullYear(), mo = date.getUTCMonth(), d = date.getUTCDate();
+    var key = d + mo * 31 + y * 372;
+    if (_lunarCache.day === key) { return _lunarCache.label; }
+    var offset = Math.round((Date.UTC(y, mo, d) - Date.UTC(1900, 0, 31)) / MS_PER_DAY);
+    var temp = 0, ly;
+    for (ly = 1900; ly < 2101 && offset > 0; ly++) { temp = lYearDays(ly); offset -= temp; }
+    if (offset < 0) { offset += temp; ly--; }
+    var leap = lLeapMonth(ly), isLeap = false, lm;
+    for (lm = 1; lm < 13 && offset > 0; lm++) {
+        if (leap > 0 && lm === leap + 1 && isLeap === false) { --lm; isLeap = true; temp = lLeapDays(ly); }
+        else { temp = lMonthDays(ly, lm); }
+        if (isLeap === true && lm === leap + 1) { isLeap = false; }
+        offset -= temp;
+    }
+    if (offset === 0 && leap > 0 && lm === leap + 1) {
+        if (isLeap) { isLeap = false; } else { isLeap = true; --lm; }
+    }
+    if (offset < 0) { offset += temp; --lm; }
+    _lunarCache.day = key;
+    _lunarCache.label = (isLeap ? '闰' : '') + LUNAR_MONTHS[lm - 1] + LUNAR_DAYS[offset];
+    return _lunarCache.label;
+    }
+        function pad(n) { return (n < 10 ? '0' : '') + n; }
+        var elHour    = document.getElementById('hour');
+        var elMinute  = document.getElementById('minute');
+        var elMonth = document.getElementById('month-number');
+        var elWeekday = document.getElementById('week-number');
+        var elDay     = document.getElementById('day-number');
+        var elLunar     = document.getElementById('lunar-date');
+        // fallback short-poll: 当设备（如 Kindle）节流长定时器时，短轮询可在分钟变化时即时修正显示
+        var lastRenderedTotalMinutes = null;
+        var fallbackPoll = null;
+
+        // 更新时间和日期
+        function updateTime(now) {
+            now = now || getLocalDate();
+            var total = now.getUTCHours() * 60 + now.getUTCMinutes();
+            elHour.textContent    = pad(now.getUTCHours());
+            elMinute.textContent  = pad(now.getUTCMinutes());
+            elWeekday.textContent = WEEKDAYS[now.getUTCDay()];
+            elMonth.textContent = MONTHS[now.getUTCMonth()];
+            elDay.textContent     = pad(now.getUTCDate());
+            elLunar.textContent   = toLunarLabel(now);
+            lastRenderedTotalMinutes = total;
+        }
+
+        function checkMinuteChange() {
+            var now = getLocalDate();
+            var total = now.getUTCHours() * 60 + now.getUTCMinutes();
+            if (lastRenderedTotalMinutes === null || total !== lastRenderedTotalMinutes) {
+                updateTime(now);
+            }
+        }
+        
+
+        // 语录库，可自行增删
+        var quotes = [
+            {text: '人生天地之间，若白驹过隙，忽然而已。', author: '庄子'},
+            {text: '路漫漫其修远兮，吾将上下而求索。', author: '屈原'},
+            {text: '天行健，君子以自强不息。', author: '周易'},
+            {text: '不积跬步，无以至千里；不积小流，无以成江海。', author: '荀子'},
+            {text: '业精于勤，荒于嬉；行成于思，毁于随。', author: '韩愈'}
+        ];
+
+        function setRandomQuote() {
+            var index = Math.floor(Math.random() * quotes.length);
+            document.getElementById('quote').innerText = quotes[index].text;
+            document.querySelector('.quote-author').innerText = '—— ' + quotes[index].author;
+        }
+
+        // 页面初始化
+        updateTime();
+        setRandomQuote();
+        // 对齐到下一分钟的边界后每分钟更新一次，避免相对于整点产生固定延迟
+        (function scheduleMinuteUpdate() {
+            var now = getLocalDate();
+            var elapsedMs = now.getUTCSeconds() * 1000 + now.getUTCMilliseconds();
+            var delay = 60000 - elapsedMs;
+            if (delay < 0) { delay = 0; }
+            setTimeout(function() {
+                updateTime();
+                setInterval(updateTime, 60000);
+                // 启动短轮询以修正可能的长定时器节流（Kindle 可能会将长定时器延后）
+                if (!fallbackPoll) { fallbackPoll = setInterval(checkMinuteChange, 5000); }
+            }, delay);
+        })();
+        // 哆啦A梦道具库：名称、描述、图片、出处
+        var doraemonItems = [
+            {
+                name: "竹蜻蜓",
+                desc: "戴在头上就能以时速80公里自由飞行，是全作品中出场率最高的道具。",
+                img: "images/item-zhutingting.png",
+                source: "出处：《瓢虫漫画哆啦A梦》第1卷"
+            },
+            {
+                name: "任意门",
+                desc: "心中想着目的地，打开门就能直达，最大可到达距离为10光年。",
+                img: "images/item-renyimen.png",
+                source: "出处：《瓢虫漫画哆啦A梦》第2卷"
+            },
+            {
+                name: "时光机",
+                desc: "放置在大雄书桌的抽屉中，可穿越时间与空间，前往过去和未来。",
+                img: "images/item-shiguangji.png",
+                source: "出处：《瓢虫漫画哆啦A梦》第1卷"
+            },
+            {
+                name: "翻译魔芋",
+                desc: "吃下后就能听懂并说出所有语言，也可以翻译书面文字。",
+                img: "images/item-fanyimoyu.png",
+                source: "出处：《瓢虫漫画哆啦A梦》第2卷"
+            },
+            {
+                name: "记忆面包",
+                desc: "把面包印在书页上吃下去，就能记住书页上的全部内容。",
+                img: "images/item-jiyimianbao.png",
+                source: "出处：《瓢虫漫画哆啦A梦》第2卷"
+            },
+            {
+                name: "如果电话亭",
+                desc: "投入硬币后说出“如果……”，就能创造出对应的平行世界。",
+                img: "images/item-ruguodianhuating.png",
+                source: "出处：《瓢虫漫画哆啦A梦》第11卷"
+            },
+            {
+                name: "缩小灯",
+                desc: "被灯光照射到的物体会缩小，可使用放大灯恢复原状。",
+                img: "images/item-suoxiaodeng.png",
+                source: "出处：《瓢虫漫画哆啦A梦》第3卷"
+            },
+            {
+                name: "恶魔护照",
+                desc: "持有这本护照的人，做任何坏事都不会被指责和惩罚。",
+                img: "images/item-emohuzhao.png",
+                source: "出处：《瓢虫漫画哆啦A梦》第13卷"
+            }
+        ];
+
+        // 随机展示道具
+        function showRandomItem() {
+            var index = Math.floor(Math.random() * doraemonItems.length);
+            var item = doraemonItems[index];
+            document.getElementById('itemImg').src = item.img;
+            document.getElementById('itemName').innerText = item.name;
+            document.getElementById('itemDesc').innerText = item.desc;
+            document.getElementById('itemSource').innerText = item.source;
+        }
+
+        // 按钮点击切换
+        document.getElementById('refreshItem').addEventListener('click', showRandomItem);
+
+        // 页面初始化执行一次
+        showRandomItem();
+
+    // Load doraemonItems from dierji/data_valid.json and overwrite runtime data
+    (function(){
+      var jsonPath = 'dierji/data_valid.json';
+      function normalize(it){
+        return {
+          no: it.no || '',
+          name: it.name || '',
+          desc: it.desc || it.description || '',
+          img: it.img_filename || it.image_url || it.img || '',
+          source: it.source || ''
+        };
+      }
+      function apply(data){
+        if(!Array.isArray(data) || !data.length) return;
+        try{ window.doraemonItems = data.map(normalize); }catch(e){ window.doraemonItems = data; }
+        try{
+          var idx = (typeof getDailyIndex === 'function') ? getDailyIndex('item', window.doraemonItems.length) : Math.floor(Math.random()*window.doraemonItems.length);
+          var item = window.doraemonItems[idx];
+          if(item){
+            var el;
+            el = document.getElementById('itemName'); if(el) el.innerText = item.name;
+            el = document.getElementById('itemDesc'); if(el) el.innerText = item.desc;
+            el = document.getElementById('itemImg'); if(el && item.img) el.src = item.img;
+            el = document.getElementById('itemSource'); if(el) el.innerHTML = item.source || '';
+          }
+        }catch(e){}
+      }
+      function fetchJson(){
+        if(window.fetch){
+          fetch(jsonPath).then(function(r){ if(!r.ok) throw new Error('Network error'); return r.json(); }).then(apply).catch(function(){ xhrLoad(); });
+        } else { xhrLoad(); }
+      }
+      function xhrLoad(){
+        try{
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', jsonPath, true);
+          xhr.onreadystatechange = function(){ if(xhr.readyState===4 && (xhr.status===200 || xhr.status===0)){ try{ var d = JSON.parse(xhr.responseText); apply(d);}catch(e){} } };
+          xhr.send(null);
+        }catch(e){}
+      }
+      fetchJson();
+    })();
+
+    </script>
+</body>
+</html>

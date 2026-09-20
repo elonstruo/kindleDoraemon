@@ -1,0 +1,16 @@
+{
+    "name": "宝可梦图鉴",
+    "image_width": 600,
+    "jpg_quality": 78,
+    "filename_prefix": "pk-",
+    "default_fields": {
+        "type": "普通"
+    },
+    "fields": [
+        "no",
+        "name",
+        "type",
+        "desc",
+        "img_filename"
+    ]
+}

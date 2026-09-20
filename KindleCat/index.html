@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script src="https://cdn.jsdelivr.net/npm/vconsole@3.15.1/dist/vconsole.min.js"></script>
+<title>漫画图鉴</title>
+<style>
+/* ========== 全局（Kindle专属优化） ========== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body, html {
+    width: 100%;
+    min-width: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #fff;
+    color: #000;
+    padding: 0;
+    line-height: 1.6;
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+}
+
+/* ========== 整页漫画外框 ========== */
+.comic-page {
+    /* 强制占满视口宽度，防止某些旧浏览器将页面渲染为窄列 */
+    width: 100%;
+    max-width: none;
+    min-width: 100%;
+    margin: 0;
+
+    /* border: 5px solid #000; */
+    padding: 10px;
+    position: relative;
+    min-height: 96vh;
+    padding: 15px;
+    min-height: 92vh;
+    /* 固定高度适配Kindle一屏 */
+    min-height: 700px;
+}
+
+.page-number {
+    position: absolute;
+    top: -16px;
+    left: -15px;
+    background: #fff;
+    border: 3px solid #000;
+    padding: 2px 10px;
+    font-size: 13px;
+    font-weight: 900;
+    z-index: 10;
+}
+
+/* ========== 漫画分镜容器 ========== */
+.panels {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+}
+
+/* 通用分格 */
+.panel {
+    border: 3px solid #000;
+    padding: 12px;
+    position: relative;
+    background: #fff;
+    margin-bottom: -3px;
+    width: 100%;
+    min-width: 0;
+}
+
+.panel:last-child {
+    margin-bottom: 0;
+    /* margin-top: 10px; */
+
+}
+
+/* 分格标题小黑条 */
+.panel-tag {
+    display: inline-block;
+    background: #000;
+    color: #fff;
+    padding: 3px 10px;
+    font-size: 13px;
+    font-weight: 900;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+
+/* ========== 第一格：时间 ========== */
+.time-panel {
+    width: 45%;
+    height: 120px;
+    text-align: center;
+    padding: 10px 0;
+}
+
+.time-row {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-box-pack: center;
+    align-items: center;
+    justify-content: center;
+    /* gap: 14px; */
+}
+
+.time-big {
+    font-size: 36px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    line-height: 1;
+    text-shadow:
+        2px 0 0 #000, -2px 0 0 #000,
+        0 2px 0 #000, 0 -2px 0 #000;
+    color: #fff;
+    margin-right: 8px;
+}
+
+.date-side {
+    text-align: left;
+    border-left: 3px solid #000;
+    padding-left: 8px;
+}
+
+.date-side .date-main {
+    font-size: 17px;
+    font-weight: 900;
+    line-height: 1.4;
+    border-bottom: 2px solid #000;
+}
+
+.date-side .date-week {
+    font-size: 14px;
+    font-weight: 900;
+    margin-top: 4px;
+    padding-top: 4px;
+}
+
+/* ========== 第二格：今日道具 ========== */
+.item-panel {
+    /* padding: 12px; */
+    /* margin-top: 40px; */
+}
+
+.item-header {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    align-items: center;
+}
+
+.item-title-row {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-box-pack: justify;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    border-bottom: 4px double #000;
+    padding-bottom: 6px;
+}
+
+.item-title-row .panel-tag {
+    margin-bottom: 0;
+}
+
+.item-name {
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    position: relative;
+    z-index: 2;
+}
+
+.item-no {
+    font-size: 13px;
+    font-weight: 900;
+    border: 2px solid #000;
+    padding: 2px 8px;
+}
+
+/* 道具图文区：左右分栏 */
+/* 道具图文区：左右分栏 */
+.item-body {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    /* Kindle 7 兼容：gap 在旧 WebKit 上不稳定，改用 margin */
+    -webkit-box-align: start;
+    align-items: flex-start;
+    width: 100%;
+    min-width: 0;
+    /* overflow: hidden; */
+}
+
+.item-promo-image {
+    -webkit-box-flex: 0;
+    -webkit-flex: 0 0 240px;
+    flex: 0 0 240px;
+    width: 240px;
+    height: auto;
+    align-self: flex-start;
+    margin-right: 12px;
+    display: none;
+}
+
+.item-image-box {
+    /* -webkit-flex-shrink: 0;
+    flex-shrink: 0;
+    -webkit-box-flex: 0;
+    -webkit-flex: 0 0 240px; */
+    /* flex: 0 0 240px; */
+    /* min-width: 0;
+    -webkit-box-flex: 0;
+    -webkit-flex: 0 0 45%;
+    flex: 0 0 45%; */
+    /* height: 240px; */
+    width: 200px;
+    height: 200px;
+    /* margin-top: -15px; */
+    border: 3px solid #000;
+    /* padding: 6px; */
+    text-align: center;
+    margin-right: 2px;
+    overflow: hidden;
+    position: relative;
+    align-self: flex-start;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    /* Kindle 7 兼容：gap 在旧 WebKit 上不稳定，改用 margin */
+    -webkit-box-align: center;
+    align-items: center;
+}
+
+.item-image-box .item-name {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    z-index: 2;
+    width: 100%;
+    margin: 0;
+    background: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-image-box img {
+    /* width: 100%;
+    height: 100%;
+    object-fit: fill; */
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+    max-width: 100%;
+}
+
+.item-text {
+    /* -webkit-box-flex: 1;
+    -webkit-flex: 1;
+    flex: 1;
+    -webkit-flex-basis: 0;
+    flex-basis: 0; */
+    width: 300px;
+    /* height: 210px; */
+    min-width: 0;
+    /* width: 100%; */
+    overflow-wrap: break-word;
+    overflow: visible;
+    margin-left: 10px;
+}
+
+/* 描述对话框 */
+.item-desc-bubble {
+    border: 3px solid #000;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 18px;
+    font-weight: bold;
+    line-height: 1.6;
+    position: relative;
+    /* margin-bottom: 10px; */
+    height: 200px;
+    /* overflow: hidden; */
+    word-break: break-all;
+    overflow-wrap: break-word;
+        padding-top: 24px;
+}
+
+/* 气泡小尾巴指向图片 */
+.item-desc-bubble::after {
+    content: "";
+    position: absolute;
+    left: -13px;
+    top: 30px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 12px solid #000;
+}
+
+.item-desc-bubble::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    top: 31px;
+    width: 0;
+    height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-right: 9px solid #fff;
+    z-index: 1;
+}
+
+/* 出处注释 */
+.item-source-box {
+    border: 2px solid #000;
+    padding: 6px 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    position: relative;
+}
+
+.item-source-box::before {
+    content: "出处";
+    position: absolute;
+    top: -9px;
+    left: 8px;
+    background: #000;
+    color: #fff;
+    font-size: 10px;
+    padding: 1px 6px;
+    font-weight: 900;
+}
+
+/* ========== 新增：名场面子分格 ========== */
+.item-scene-panel {
+    margin-top: 12px;
+    border: 2px solid #000;
+    padding: 10px 10px 8px;
+    position: relative;
+    background: #fff;
+}
+
+.scene-tag {
+    position: absolute;
+    top: -9px;
+    left: 10px;
+    background: #000;
+    color: #fff;
+    font-size: 11px;
+    padding: 1px 8px;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+
+.scene-body {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    /* Kindle 7 兼容：gap 在旧 WebKit 上不稳定，改用 margin */
+    -webkit-box-align: start;
+    align-items: flex-start;
+    padding-top: 2px;
+}
+
+.scene-img-box {
+    -webkit-flex-shrink: 0;
+    flex-shrink: 0;
+    -webkit-box-flex: 0;
+    -webkit-flex: 0 0 90px;
+    flex: 0 0 90px;
+    width: 90px;
+    height: 68px;
+    border: 2px solid #000;
+    padding: 2px;
+    text-align: center;
+    margin-right: 10px;
+}
+
+.scene-img-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* filter: contrast(140%); */
+    display: block;
+}
+
+.scene-text {
+    -webkit-box-flex: 1;
+    -webkit-flex: 1;
+    flex: 1;
+    min-width: 0;
+}
+
+.scene-line {
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1.4;
+    margin-bottom: 3px;
+    font-style: italic;
+}
+
+.scene-desc {
+    font-size: 12px;
+    line-height: 1.4;
+    margin-bottom: 3px;
+}
+
+.scene-source {
+    font-size: 11px;
+    font-weight: 900;
+}
+
+/* ========== 第三格：每日一句 ========== */
+.quote-panel {
+}
+
+/* 语录作者行 */
+.quote-meta {
+    text-align: right;
+    margin-top: 18px;
+}
+
+.quote-author {
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.speech-bubble {
+    position: relative;
+    border: 3px solid #000;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1.6;
+}
+
+.speech-bubble::after {
+    content: "";
+    position: absolute;
+    bottom: -12px;
+    right: 36px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 12px solid #000;
+}
+
+.speech-bubble::before {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    right: 39px;
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 9px solid #fff;
+    z-index: 1;
+}
+
+/* ========== 刷新按钮栏 ========== */
+/* table fallback for equal-width buttons on ancient browsers */
+.refresh-bar {
+    /* display: table; */
+    width: 100%;
+    /* table-layout: fixed; */
+
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    margin-top: 10px;
+}
+
+.refresh-btn {
+    -webkit-box-flex: 1;
+    -webkit-flex: 1;
+    flex: 1;
+    padding: 10px;
+    font-size: 15px;
+    font-weight: 900;
+    background: #fff;
+    color: #000;
+    border: 3px solid #000;
+    cursor: pointer;
+    /* width: 18%; */
+}
+
+.refresh-bar > .refresh-btn:not(:last-child) {
+    margin-right: 8px;
+}
+
+.refresh-btn:active {
+    transform: translate(3px, 3px);
+    box-shadow: none;
+}
+
+/* ========== 底部 ========== */
+.comic-footer {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 8px 0 2px;
+    border-top: 3px double #000;
+    margin-top: 10px;
+    letter-spacing: 3px;
+}
+
+/* ========== kindle 7 适配 ========== */
+/* 分格内边距压缩 */
+/* .panel { padding: 8px 10px; } */
+
+/* 时间格缩小 */
+/* .time-panel { padding: 6px 10px 8px; } */
+/* .time-big { font-size: 48px; } */
+
+/* 道具格压缩 */
+.item-header { margin-bottom: 0; padding-bottom: 0; }
+.item-title-row { margin-bottom: 6px; padding-bottom: 4px; }
+.item-body {
+    min-width: 0;
+    max-height: 250px;
+}
+.item-promo-image {
+    -webkit-flex: 0 0 150px;
+    flex: 0 0 150px;
+    width: 150px;
+    margin-right: 8px;
+}
+.item-image-box {
+    /* -webkit-flex: 0 0 200px;
+    flex: 0 0 200px;
+    min-width: 0;
+    height: 150px;
+    margin-right: 8px; */
+}
+.item-image-box .item-name { font-size: 20px; }
+/* .item-desc-bubble {
+    padding: 6px 8px;
+    font-size: 14px;
+    line-height: 1.4;
+} */
+
+/* 语录格压缩 */
+.quote-meta { margin-top: 14px; }
+
+/* 按钮栏收窄 */
+/* .refresh-btn { padding: 6px; font-size: 14px; } */
+
+/* 页脚收窄 */
+.comic-footer { padding: 4px 0 2px; margin-top: 6px; }
+
+.first-panels { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+.name-panel { width: 55%;height: 120px; position: relative; margin-right: 10px; text-align: center; }
+.time-panel { }
+.tuijian-pic {
+    width: 90px;
+    position: absolute;
+    bottom: -35px;
+    right: 0;
+    z-index: 1;
+}
+</style>
+</head>
+<body>
+
+<div class="comic-page">
+    <!-- <div class="page-number">P.01</div> -->
+    <div class="panels">
+        <div class="first-panels">
+            <!-- ===== 第一格：今日道具 ===== -->
+            <div class="panel name-panel">
+                <div class="page-number" id="itemNo">NO.001</div>
+                <div class="item-name" id="itemName">竹蜻蜓</div>
+                <img class="tuijian-pic" src="images/jinrituijian.jpg" alt="道具图" />
+            </div>
+            <!-- ===== 第一格：时间 ===== -->
+            <div class="panel time-panel">
+                <div class="panel-tag">今日时间</div>
+                <div class="time-row">
+                    <div class="time-big" id="time">--:--</div>
+                    <div class="date-side">
+                        <div class="date-main" id="date">----年--月--日</div>
+                        <div class="date-week" id="week">星期-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ===== 第二格：今日道具 ===== -->
+        <div class="item-panel">
+            <!-- <div class="item-title-row">
+                <div class="panel-tag">今日道具</div>
+                <div class="item-header">
+                    <div class="item-no" id="itemNo">NO.001</div>
+                </div>
+            </div> -->
+            <div class="item-body">
+                <!-- <img class="item-promo-image" src="images/taochudaoju.png" alt="道具图" /> -->
+                <div class="item-image-box">
+                    <!-- <div class="item-name" id="itemName">竹蜻蜓</div> -->
+                    <img id="itemImg" src="images/item-zhuqingting.png" alt="道具图" />
+                </div>
+                <div class="item-text">
+                    <div class="item-desc-bubble" id="itemDesc">
+                        戴在头上即可时速80公里自由飞行，是作品中出场率最高的经典道具。
+                    </div>
+                    <!-- <div class="item-source-box" id="itemSource">
+                        漫画：第1卷第1话《从遥远的未来世界来》·
+                        动画：大山版第1话 / 水田版第1话
+                    </div> -->
+                </div>
+            </div>
+            
+
+            <!-- ===== 新增：名场面子分格 ===== -->
+            <!-- <div class="item-scene-panel">
+                <div class="scene-tag">名场面</div>
+                <div class="scene-body">
+                    <div class="scene-img-box">
+                        <img id="sceneImg" src="images/scene-zhuqingting.png" alt="名场面" />
+                    </div>
+                    <div class="scene-text">
+                        <div class="scene-line" id="sceneLine">飞起来了！大雄真的飞起来了！</div>
+                        <div class="scene-desc" id="sceneDesc">大雄第一次戴上竹蜻蜓，从房间窗户冲向天空</div>
+                        <div class="scene-source" id="sceneSource">出处：第1卷第1话</div>
+                    </div>
+                </div>
+            </div>
+        </div> -->
+
+        <!-- ===== 第三格：每日一句 ===== -->
+        <div class="quote-panel">
+            <div class="panel-tag">每日一句</div>
+            <div class="speech-bubble" id="quote">
+                只要还活着，就一定能找到快乐的事情。
+            </div>
+            <div class="quote-meta">
+                <span class="quote-author" id="quoteAuthor">—— 哆啦A梦</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 刷新按钮栏 -->
+    <div class="refresh-bar">
+        <button class="refresh-btn" id="prevItem">上一道具</button>
+        <button class="refresh-btn" id="nextItem">下一道具</button>
+        <button class="refresh-btn" id="refreshItem">换道具</button>
+        <button class="refresh-btn" id="refreshQuote">换语录</button>
+        <button class="refresh-btn" id="refreshAll">全换</button>
+    </div>
+
+    <div class="comic-footer">— 未完待续 —</div>
+</div>
+
+<script>
+// ========== 时间日期 ==========
+// Kindle 7 的系统时区可能不准，强制按北京时间（UTC+8）显示。
+function getChinaTime() {
+    var now = new Date();
+    var utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utc + (8 * 60 * 60 * 1000));
+}
+
+function updateTime() {
+    var now = getChinaTime();
+    var h = now.getHours();
+    var m = now.getMinutes();
+    h = h < 10 ? '0' + h : h;
+    m = m < 10 ? '0' + m : m;
+    document.getElementById('time').innerText = h + ':' + m;
+
+    var y = now.getFullYear();
+    var mo = now.getMonth() + 1;
+    var d = now.getDate();
+    mo = mo < 10 ? '0' + mo : mo;
+    d = d < 10 ? '0' + d : d;
+    document.getElementById('date').innerText = y + '-' + mo + '-' + d;
+
+    var weeks = [
+        {cn: '星期日', ja: '日曜日'},
+        {cn: '星期一', ja: '月曜日'},
+        {cn: '星期二', ja: '火曜日'},
+        {cn: '星期三', ja: '水曜日'},
+        {cn: '星期四', ja: '木曜日'},
+        {cn: '星期五', ja: '金曜日'},
+        {cn: '星期六', ja: '土曜日'}
+    ];
+    var week = weeks[now.getDay()];
+    document.getElementById('week').innerText = week.cn + '（' + week.ja + '）';
+}
+var lastDailyKey = null;
+
+function refreshDailyContentIfNeeded() {
+    // 如果 DOM 尚未准备好，延迟执行以避免触发表现差异
+    if (document.readyState === 'loading') {
+        window.addEventListener('load', refreshDailyContentIfNeeded);
+        return;
+    }
+
+    var dayKey = getChinaDayKey();
+    if (lastDailyKey === dayKey) {
+        return;
+    }
+    lastDailyKey = dayKey;
+    randomItem();
+    randomQuote();
+    // 在某些旧浏览器（如 Kindle7 的旧 WebKit）上，脚本修改内容后需要强制修正宽度
+    if (typeof forceFullWidth === 'function') {
+        // 小延迟以确保 DOM 变更完成再触发重排
+        setTimeout(forceFullWidth, 30);
+    }
+}
+
+updateTime();
+// refreshDailyContentIfNeeded();
+setInterval(updateTime, 30000);
+// setInterval(refreshDailyContentIfNeeded, 60000);
+
+// ========== 语录库（30条剧场版台词） ==========
+var quotes = [
+    {text: "大雄，你真是的，又把零分考卷藏起来了！", author: "哆啦A梦", source: "《大雄的恐龙》1980"},
+    {text: "我想成为一个对别人有用的人。", author: "大雄", source: "《大雄的宇宙开拓史》1981"},
+    {text: "不管遇到什么困难，都不能放弃希望。", author: "哆啦A梦", source: "《大雄在魔境》1982"},
+    {text: "只要大家齐心协力，就没有做不到的事。", author: "胖虎", source: "《大雄的海底鬼岩城》1983"},
+    {text: "只要还活着，就一定能找到快乐的事情。", author: "哆啦A梦", source: "《大雄的魔界大冒险》1984"},
+    {text: "真正的自由，是靠自己的双手争取来的。", author: "大雄", source: "《大雄的宇宙小战争》1985"},
+    {text: "朋友不是靠数量，而是靠质量。", author: "胖虎", source: "《大雄与铁人兵团》1986"},
+    {text: "就算害怕，也要鼓起勇气向前走。", author: "大雄", source: "《大雄与龙骑士》1987"},
+    {text: "过去无法改变，但未来可以。", author: "哆啦A梦", source: "《大雄的平行西游记》1988"},
+    {text: "无论走到哪里，家乡永远是最温暖的地方。", author: "静香", source: "《大雄的日本诞生》1989"},
+    {text: "就算没有道具，我也要保护大家。", author: "大雄", source: "《大雄与动物行星》1990"},
+    {text: "梦想不是别人给的，是要自己去追的。", author: "哆啦A梦", source: "《大雄的天方夜谭》1991"},
+    {text: "真正的勇气，是在害怕的时候还能站起来。", author: "哆啦A梦", source: "《大雄与云之王国》1992"},
+    {text: "人的眼睛为什么长在前面？就是为了不断向前看。", author: "哆啦A梦", source: "《大雄与白金迷宫》1993"},
+    {text: "我才不是什么天才，我只是比别人努力一倍而已。", author: "出木衫", source: "《大雄与梦幻三剑士》1994"},
+    {text: "不管多远，我都会去接你。", author: "哆啦A梦", source: "《大雄的创世日记》1995"},
+    {text: "一个人的力量是有限的，但大家一起就能做到。", author: "胖虎", source: "《大雄与银河超特急》1996"},
+    {text: "生命是最宝贵的，谁也不能轻易夺走。", author: "静香", source: "《大雄的发条都市冒险记》1997"},
+    {text: "就算失败了，只要不放弃就还有机会。", author: "大雄", source: "《大雄的南海大冒险》1998"},
+    {text: "回家吧，回到那个有大家在的地方。", author: "哆啦A梦", source: "《大雄的宇宙漂流记》1999"},
+    {text: "真正的强大，是拥有一颗温柔的心。", author: "静香", source: "《大雄的太阳王传说》2000"},
+    {text: "天空是属于所有人的，不是某个人的私有物。", author: "胖虎", source: "《大雄与翼之勇者》2001"},
+    {text: "重要的不是结果，而是你努力过的过程。", author: "静香", source: "《大雄与机器人王国》2002"},
+    {text: "我想一直一直和大家在一起。", author: "哆啦A梦", source: "《大雄与风之使者》2003"},
+    {text: "只要相信自己，奇迹就一定会发生。", author: "大雄", source: "《大雄的猫狗时空传》2004"},
+    {text: "我不会让任何人伤害我的朋友。", author: "胖虎", source: "《大雄的恐龙》2006"},
+    {text: "就算是笨蛋，也有笨蛋的生存方式。", author: "胖虎", source: "《大雄的新魔界大冒险》2007"},
+    {text: "每一个生命都有它存在的意义。", author: "静香", source: "《大雄与绿巨人传》2008"},
+    {text: "谢谢你，哆啦A梦，有你在真好。", author: "大雄", source: "《哆啦A梦：伴我同行》2014"},
+    {text: "朋友之间，不需要说对不起。", author: "胖虎", source: "《大雄与天空的理想乡》2023"}
+];
+
+function getChinaDayKey() {
+    var now = getChinaTime();
+    var y = now.getFullYear();
+    var mo = now.getMonth() + 1;
+    var d = now.getDate();
+    mo = mo < 10 ? '0' + mo : mo;
+    d = d < 10 ? '0' + d : d;
+    return y + '-' + mo + '-' + d;
+}
+
+function hashString(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+        hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+    }
+    return hash;
+}
+
+function getDailyIndex(key, total) {
+    var dayKey = getChinaDayKey();
+    var salt = key + ':' + dayKey;
+    var idx = hashString(salt) % total;
+    return idx;
+}
+
+function setQuoteByIndex(idx) {
+    var quote = quotes[idx];
+    document.getElementById('quote').innerText = quote.text;
+    document.getElementById('quoteAuthor').innerText =
+        '—— ' + quote.author + ' · ' + quote.source;
+}
+
+function randomQuote() {
+    var idx = getDailyIndex('quote', quotes.length);
+    setQuoteByIndex(idx);
+}
+
+function manualRandomQuote() {
+    var idx = Math.floor(Math.random() * quotes.length);
+    setQuoteByIndex(idx);
+    // forceFullWidth();
+}
+
+// 强制页面在部分旧浏览器（如 Kindle 7 的 WebKit）上填满视口宽度
+function forceFullWidth() {
+    try {
+        document.documentElement.style.width = '100%';
+        document.body.style.width = '100%';
+        var cp = document.querySelector('.comic-page');
+        if (cp) {
+            cp.style.width = '100%';
+            cp.style.maxWidth = 'none';
+            cp.style.margin = '0';
+            // 触发重排
+            void cp.offsetWidth;
+        }
+    } catch (e) {
+        // ignore
+    }
+}
+
+(function(){
+ var raw = [
+  {
+    "name": "预收回信邮筒",
+    "page_url": "https://chinesedora.com/gadget/55.htm",
+    "image_url": "https://chinesedora.com/gadget/ha_files/1_1_076.jpg",
+    "desc": "把信投到这个邮筒里，在真的把信寄出去之前，就能事先收到回信。",
+    "source": "漫画原作",
+    "no": "NO.001",
+    "img_filename": "dierji/images_kindle/item-001.jpg"
+  },
+  {
+    "name": "细胞缩小机",
+    "page_url": "https://chinesedora.com/gadget/54.htm",
+    "image_url": "https://chinesedora.com/gadget/mizuta11202/153.jpg",
+    "desc": "被射到的东西就会缩小。但射程只有二十公尺。",
+    "source": "漫画原作",
+    "no": "NO.002",
+    "img_filename": "dierji/images_kindle/item-002.jpg"
+  },
+  {
+    "name": "室内旅行机",
+    "page_url": "https://chinesedora.com/gadget/53.htm",
+    "image_url": "https://chinesedora.com/gadget/sa_files/1_1_063.jpg",
+    "desc": "内建许多风景，只要选定风景，就能让室内看起来像该风景的样子。但室内的大小不会因此而改变。哆啦A梦在故事中提到他把「立体电影」中的雪景移了过来。",
+    "source": "漫画原作",
+    "no": "NO.003",
+    "img_filename": "dierji/images_kindle/item-003.jpg"
+  },
+  {
+    "name": "室内滑雪场",
+    "page_url": "https://chinesedora.com/gadget/52.htm",
+    "image_url": "https://chinesedora.com/comic/c52.jpg",
+    "desc": "可以方便的练习滑雪。可以改变方向，传送带会随著你的速度滑动，你停它也停。",
+    "source": "漫画原作",
+    "no": "NO.004",
+    "img_filename": "dierji/images_kindle/item-004.jpg"
+  },
+  {
+    "name": "传染感冒器",
+    "page_url": "https://chinesedora.com/gadget/51.htm",
+    "image_url": "https://chinesedora.com/gadget/ka_files/1_1_088.jpg",
+    "desc": "可以把感冒传染给别人，本人的感冒就会消失。",
+    "source": "漫画原作",
+    "no": "NO.005",
+    "img_filename": "dierji/images_kindle/item-005.jpg"
+  },
+  {
+    "name": "快乐的假日农业组",
+    "page_url": "https://chinesedora.com/gadget/50.htm",
+    "image_url": "https://chinesedora.com/gadget/wp-content/uploads/2014/11/shiumi.jpg",
+    "desc": "可以在家里种田。不过哆啦A梦买到了次级货，季节控制方面有问题。",
+    "source": "漫画原作",
+    "no": "NO.006",
+    "img_filename": "dierji/images_kindle/item-006.jpg"
+  },
+  {
+    "name": "年糕制造机",
+    "page_url": "https://chinesedora.com/gadget/49.htm",
+    "image_url": "https://chinesedora.com/gadget/ma_files/1_1_027.jpg",
+    "desc": "只要有材料，就可以做出麻糬来。",
+    "source": "漫画原作",
+    "no": "NO.007",
+    "img_filename": "dierji/images_kindle/item-007.jpg"
+  },
+  {
+    "name": "挖洞机",
+    "page_url": "https://chinesedora.com/gadget/48.htm",
+    "image_url": "https://chinesedora.com/comic/c48.jpg",
+    "desc": "可以轻松挖洞。哆啦A梦与大雄就是用这个，帮爸爸盖地下铁的。",
+    "source": "漫画原作",
+    "no": "NO.008",
+    "img_filename": "dierji/images_kindle/item-008.jpg"
+  },
+  {
+    "name": "N˙S徽章",
+    "page_url": "https://chinesedora.com/gadget/47.htm",
+    "image_url": "https://chinesedora.com/comic/c47.jpg",
+    "desc": "分N极与S极。只要黏上它，就会有同极相斥、异极相吸的效力。名列哆啦A梦最受欢迎道具第24名。",
+    "source": "漫画原作",
+    "no": "NO.009",
+    "img_filename": "dierji/images_kindle/item-009.jpg"
+  },
+  {
+    "name": "让狼瞬间睡著的枪",
+    "page_url": "https://chinesedora.com/gadget/46.htm",
+    "image_url": "https://chinesedora.com/gadget/mizuta11202/138.jpg",
+    "desc": "用这把枪射向狼人，被射中的就会睡著。",
+    "source": "漫画原作",
+    "no": "NO.010",
+    "img_filename": "dierji/images_kindle/item-010.jpg"
+  },
+  {
+    "name": "月光灯",
+    "page_url": "https://chinesedora.com/gadget/45.htm",
+    "image_url": "https://chinesedora.com/gadget/ka_files/1_1_095.jpg",
+    "desc": "可以变身成狼人。未来世界孩子们，就是利用这个玩狼人游戏的。在《大雄的新魔界大冒险》中，也登场作为关键道具！",
+    "source": "漫画原作",
+    "no": "NO.011",
+    "img_filename": "dierji/images_kindle/item-011.jpg"
+  },
+  {
+    "name": "绝对准确的手相工具",
+    "page_url": "https://chinesedora.com/gadget/44.htm",
+    "image_url": "https://chinesedora.com/gadget/ka_files/1_1_121.jpg",
+    "desc": "用笔依照目录里的手相画，命运就会与该手相代表的命运相同。。",
+    "source": "漫画原作",
+    "no": "NO.012",
+    "img_filename": "dierji/images_kindle/item-012.jpg"
+  },
+  {
+    "name": "时光布",
+    "page_url": "https://chinesedora.com/gadget/43.htm",
+    "image_url": "https://chinesedora.com/images/04.gif",
+    "desc": "是一面红色、一面蓝色绘有许多时钟图案的布。用红色的一面把东西包在里面时，就会把物品变得更新；如果以蓝色的方向把东西盖在里面，就会变得更旧。名列哆啦A梦最受欢迎道具第4名。",
+    "source": "漫画原作",
+    "no": "NO.013",
+    "img_filename": "dierji/images_kindle/item-013.jpg"
+  },
+  {
+    "name": "魔术黏胶",
+    "page_url": "https://chinesedora.com/gadget/42.htm",
+    "image_url": "https://chinesedora.com/gadget/ma_files/1_1_059.jpg",
+    "desc": "把它涂在破掉的东西上，就能恢复原状。哆啦A梦用这个道具把破掉的镜子修复了。",
+    "source": "漫画原作",
+    "no": "NO.014",
+    "img_filename": "dierji/images_kindle/item-014.jpg"
+  },
+  {
+    "name": "说谎镜",
+    "page_url": "https://chinesedora.com/gadget/41.htm",
+    "image_url": "https://chinesedora.com/comic/c41.jpg",
+    "desc": "用这镜子照自己，镜子上会显现出俊美的外表。但他会骗你，让你实际上变得更丑。",
+    "source": "漫画原作",
+    "no": "NO.015",
+    "img_filename": "dierji/images_kindle/item-015.jpg"
+  },
+  {
+    "name": "轻飘飘带",
+    "page_url": "https://chinesedora.com/gadget/40.htm",
+    "image_url": "https://chinesedora.com/gadget/ha_files/1_1_009.jpg",
+    "desc": "把它缠在身上就能飘浮起来。",
+    "source": "漫画原作",
+    "no": "NO.016",
+    "img_filename": "dierji/images_kindle/item-016.jpg"
+  },
+  {
+    "name": "诚实太郎",
+    "page_url": "https://chinesedora.com/gadget/39.htm",
+    "image_url": "https://chinesedora.com/gadget/sa_files/1_1_062.jpg",
+    "desc": "外型是腹语娃娃，会把心中所想的事情老实的说出来。",
+    "source": "漫画原作",
+    "no": "NO.017",
+    "img_filename": "dierji/images_kindle/item-017.jpg"
+  },
+  {
+    "name": "尿床水龙头",
+    "page_url": "https://chinesedora.com/gadget/38.htm",
+    "image_url": "https://chinesedora.com/gadget/wp-content/uploads/2021/10/131_1_1.jpg",
+    "desc": "顾名思义，如果被这个道具使用到，你就会尿床。",
+    "source": "漫画原作",
+    "no": "NO.018",
+    "img_filename": "dierji/images_kindle/item-018.jpg"
+  },
+  {
+    "name": "梦风铃",
+    "page_url": "https://chinesedora.com/gadget/37.htm",
+    "image_url": "https://chinesedora.com/gadget/ya_files/1_1_023.jpg",
+    "desc": "可以呼叫睡著的人起身，还可以命令他。",
+    "source": "漫画原作",
+    "no": "NO.019",
+    "img_filename": "dierji/images_kindle/item-019.jpg"
+  },
+  {
+    "name": "怪谈灯",
+    "page_url": "https://chinesedora.com/gadget/36.htm",
+    "image_url": "https://chinesedora.com/gadget/ka_files/1_1_022.jpg",
+    "desc": "把这盏灯拿出来，对著它说鬼故事，就会发生和故事一样的情景。即使是瞎掰的故事，也会很恐怖喔。",
+    "source": "漫画原作",
+    "no": "NO.020",
+    "img_filename": "dierji/images_kindle/item-020.jpg"
+  },
+  {
+    "name": "好朋友机器人",
+    "page_url": "https://chinesedora.com/gadget/35.htm",
+    "image_url": "https://chinesedora.com/gadget/ta_files/1_1_061.jpg",
+    "desc": "只要经过设定，他就会只喜欢某一人，并认定对方是日本第一的男子。但是威力可高达百万马力的喔，妒忌心也很重，要小心。",
+    "source": "漫画原作",
+    "no": "NO.021",
+    "img_filename": "dierji/images_kindle/item-021.jpg"
+  },
+  {
+    "name": "记忆面包",
+    "page_url": "https://chinesedora.com/gadget/34.htm",
+    "image_url": "https://chinesedora.com/comic/c34.jpg",
+    "desc": "只要压在要背的东西上再吃下去，就可以轻轻松松的把那东西背起来。名列哆啦A梦最受欢迎道具第5名。",
+    "source": "漫画原作",
+    "no": "NO.022",
+    "img_filename": "dierji/images_kindle/item-022.jpg"
+  },
+  {
+    "name": "动物灯",
+    "page_url": "https://chinesedora.com/gadget/33.htm",
+    "image_url": "https://chinesedora.com/gadget/ta_files/1_1_053.jpg",
+    "desc": "似乎可以改变动物的种类，例如把老师，人类换成猩猩以避免考试。但是因为没有实际使用，不知道效果怎么样。",
+    "source": "漫画原作",
+    "no": "NO.023",
+    "img_filename": "dierji/images_kindle/item-023.jpg"
+  },
+  {
+    "name": "电风扇",
+    "page_url": "https://chinesedora.com/gadget/32.htm",
+    "image_url": "https://chinesedora.com/gadget/ha_files/1_1_059.jpg",
+    "desc": "乍看下是普通的电扇，但威力似乎很强大。哆啦A梦说要用它把学校吹走。",
+    "source": "漫画原作",
+    "no": "NO.024",
+    "img_filename": "dierji/images_kindle/item-024.jpg"
+  }
+];
+
+ function normalize(it){
+   return {
+     no: it.no || '',
+     name: it.name || '',
+     desc: it.desc || it.description || '',
+     img: it.img_filename || it.image_url || it.img || '',
+     source: it.source || ''
+   };
+ }
+
+ try {
+   window.doraemonItems = (raw || []).map(normalize);
+ } catch (e) {
+   window.doraemonItems = raw || [];
+ }
+})();
+
+function setItemByIndex(idx) {
+    var item = doraemonItems[idx];
+    var itemNo = document.getElementById('itemNo');
+    var itemName = document.getElementById('itemName');
+    var itemDesc = document.getElementById('itemDesc');
+    var itemImg = document.getElementById('itemImg');
+    var itemPanel = document.querySelector('.item-panel');
+    // Batch text changes while the card is hidden to avoid transient reflow on Kindle WebKit.
+    itemPanel.style.visibility = 'hidden';
+    itemNo.innerText = item.no;
+    itemName.innerText = item.name;
+    itemDesc.innerText = item.desc;
+    itemImg.src = item.img
+    void itemPanel.offsetWidth;
+    itemPanel.style.visibility = 'visible';
+    // document.getElementById('itemSource').innerHTML = item.source;
+    
+    // 渲染名场面：有数据就显示，没有就隐藏
+    // if (item.scene) {
+    //     document.getElementById('sceneImg').src = item.scene.img;
+    //     document.getElementById('sceneLine').innerText = item.scene.line;
+    //     document.getElementById('sceneDesc').innerText = item.scene.desc;
+    //     document.getElementById('sceneSource').innerText = '出处：' + item.scene.source;
+    //     document.querySelector('.item-scene-panel').style.display = 'block';
+    // } else {
+    //     document.querySelector('.item-scene-panel').style.display = 'none';
+    // }
+}
+
+var currentItemIndex = null;
+
+function setCurrentItemIndex(idx) {
+    if (idx < 0) idx = doraemonItems.length - 1;
+    if (idx >= doraemonItems.length) idx = 0;
+    currentItemIndex = idx;
+    setItemByIndex(idx);
+}
+
+function randomItem() {
+    var idx = getDailyIndex('item', doraemonItems.length);
+    setCurrentItemIndex(idx);
+}
+
+function manualRandomItem() {
+    var idx = Math.floor(Math.random() * doraemonItems.length);
+    setCurrentItemIndex(idx);
+    // forceFullWidth();
+}
+
+function prevItem() {
+    if (currentItemIndex === null) {
+        randomItem();
+        return;
+    }
+    setCurrentItemIndex(currentItemIndex - 1);
+}
+
+function nextItem() {
+    if (currentItemIndex === null) {
+        randomItem();
+        return;
+    }
+    setCurrentItemIndex(currentItemIndex + 1);
+}
+
+// ========== 按钮事件 ==========
+document.getElementById('prevItem').addEventListener('click', prevItem);
+document.getElementById('refreshItem').addEventListener('click', manualRandomItem);
+document.getElementById('nextItem').addEventListener('click', nextItem);
+document.getElementById('refreshQuote').addEventListener('click', manualRandomQuote);
+document.getElementById('refreshAll').addEventListener('click', function() {
+    manualRandomItem();
+    manualRandomQuote();
+});
+
+// 初始化
+randomItem();
+randomQuote();
+// forceFullWidth();
+// window.addEventListener('resize', forceFullWidth);
+// 兼容：在 DOM 完全稳定后再尝试一次（某些旧浏览器需要延迟）
+// setTimeout(forceFullWidth, 200);
+
+// var vConsole = new VConsole();
+</script>
+
+</body>
+</html>

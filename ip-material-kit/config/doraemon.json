@@ -1,0 +1,24 @@
+{
+    "name": "哆啦A梦道具图鉴",
+    "image_width": 650,
+    "jpg_quality": 75,
+    "filename_prefix": "item-",
+    "default_fields": {
+        "source": "漫画原作"
+    },
+    "fields": [
+        "no",
+        "name",
+        "desc",
+        "source",
+        "img_filename"
+    ],
+    "crawler": {
+        "mode": "volume",
+        "volume_start": 1,
+        "volume_end": 1,
+        "deep_parse": true,
+        "delay": 2,
+        "convert_simple": true
+    }
+}

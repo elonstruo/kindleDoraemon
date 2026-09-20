@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>漫画图鉴</title>
+<style>
+/* ========== 全局 ========== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #fff;
+    color: #000;
+    padding: 8px;
+    line-height: 1.6;
+}
+
+/* ========== 整页漫画外框 ========== */
+.comic-page {
+    border: 5px solid #000;
+    padding: 10px;
+    position: relative;
+    min-height: 96vh;
+}
+
+.page-number {
+    position: absolute;
+    top: -14px;
+    right: 16px;
+    background: #fff;
+    border: 3px solid #000;
+    padding: 2px 10px;
+    font-size: 13px;
+    font-weight: bold;
+    z-index: 10;
+}
+
+/* ========== 漫画分镜容器 ========== */
+.panels {
+    display: flex;
+    flex-direction: column;
+    gap: 0; /* 分格线用border实现，不用gap */
+}
+
+/* 通用分格 */
+.panel {
+    border: 3px solid #000;
+    padding: 12px;
+    position: relative;
+    background: #fff;
+    /* 分格之间重叠1px形成连续分格线 */
+    margin-bottom: -3px;
+}
+
+.panel:last-child {
+    margin-bottom: 0;
+}
+
+/* 分格标题小黑条 */
+.panel-tag {
+    display: inline-block;
+    background: #000;
+    color: #fff;
+    padding: 3px 10px;
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+
+/* ========== 第一格：时间（窄格，页眉感） ========== */
+.time-panel {
+    text-align: center;
+    padding: 10px 12px 12px;
+}
+
+.time-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+}
+
+.time-big {
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    line-height: 1;
+    text-shadow:
+        2px 0 0 #000, -2px 0 0 #000,
+        0 2px 0 #000, 0 -2px 0 #000;
+    color: #fff;
+}
+
+.date-side {
+    text-align: left;
+    border-left: 3px solid #000;
+    padding-left: 12px;
+}
+
+.date-side .date-main {
+    font-size: 17px;
+    font-weight: bold;
+    line-height: 1.4;
+}
+
+.date-side .date-week {
+    font-size: 14px;
+    font-weight: bold;
+    border-top: 2px solid #000;
+    margin-top: 4px;
+    padding-top: 4px;
+}
+
+/* ========== 第二格：今日道具（主格，最大） ========== */
+.item-panel {
+    padding: 12px;
+}
+
+.item-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    border-bottom: 4px double #000;
+    padding-bottom: 6px;
+}
+
+.item-name {
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: 2px;
+}
+
+.item-no {
+    font-size: 13px;
+    font-weight: bold;
+    border: 2px solid #000;
+    padding: 2px 8px;
+}
+
+/* 道具图文区：左右分栏 */
+.item-body {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.item-image-box {
+    flex-shrink: 0;
+    width: 140px;
+    border: 3px solid #000;
+    padding: 6px;
+    text-align: center;
+}
+
+.item-image-box img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    filter: contrast(140%);
+}
+
+.item-text {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 描述对话框 */
+.item-desc-bubble {
+    border: 3px solid #000;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 15px;
+    font-weight: bold;
+    line-height: 1.6;
+    position: relative;
+    margin-bottom: 10px;
+}
+
+/* 气泡小尾巴指向图片 */
+.item-desc-bubble::after {
+    content: "";
+    position: absolute;
+    left: -12px;
+    top: 16px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 12px solid #000;
+}
+
+.item-desc-bubble::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    top: 18px;
+    width: 0;
+    height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-right: 9px solid #fff;
+    z-index: 1;
+}
+
+/* 出处注释 */
+.item-source-box {
+    border: 2px solid #000;
+    padding: 6px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    position: relative;
+}
+
+.item-source-box::before {
+    content: "出处";
+    position: absolute;
+    top: -9px;
+    left: 8px;
+    background: #000;
+    color: #fff;
+    font-size: 10px;
+    padding: 1px 6px;
+    font-weight: bold;
+}
+
+/* ========== 第三格：每日一句（底部窄格） ========== */
+.quote-panel {
+    padding: 12px 14px 14px;
+}
+/* 语录作者行 */
+.quote-meta {
+    text-align: right;
+    margin-top: 18px;
+}
+
+.quote-author {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* 出处注释框——和道具出处同款风格 */
+.quote-source-box {
+    margin-top: 10px;
+    border: 2px solid #000;
+    padding: 6px 10px 6px 38px;
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: bold;
+    position: relative;
+    background: #fff;
+}
+
+.quote-source-box::before {
+    content: "出处";
+    position: absolute;
+    top: -9px;
+    left: 8px;
+    background: #000;
+    color: #fff;
+    font-size: 10px;
+    padding: 1px 6px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.speech-bubble {
+    position: relative;
+    border: 3px solid #000;
+    border-radius: 16px;
+    padding: 12px 14px;
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1.7;
+}
+
+.speech-bubble::after {
+    content: "";
+    position: absolute;
+    bottom: -16px;
+    right: 40px;
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-top: 16px solid #000;
+}
+
+.speech-bubble::before {
+    content: "";
+    position: absolute;
+    bottom: -11px;
+    right: 43px;
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top: 12px solid #fff;
+    z-index: 1;
+}
+
+.quote-author {
+    text-align: right;
+    font-size: 13px;
+    margin-top: 20px;
+    font-weight: bold;
+}
+
+/* ========== 刷新按钮 ========== */
+.refresh-bar {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.refresh-btn {
+    flex: 1;
+    padding: 10px;
+    font-size: 15px;
+    font-weight: 900;
+    background: #fff;
+    color: #000;
+    border: 3px solid #000;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 2px;
+    box-shadow: 3px 3px 0 #000;
+}
+
+.refresh-btn:active {
+    transform: translate(3px, 3px);
+    box-shadow: none;
+}
+
+/* ========== 底部 ========== */
+.comic-footer {
+    text-align: center;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 8px 0 2px;
+    border-top: 3px double #000;
+    margin-top: 10px;
+    letter-spacing: 3px;
+}
+</style>
+</head>
+<body>
+
+<div class="comic-page">
+    <div class="page-number">P.01</div>
+
+    <div class="panels">
+
+        <!-- ===== 第一格：时间 ===== -->
+        <div class="panel time-panel">
+            <div class="panel-tag">今日时间</div>
+            <div class="time-row">
+                <div class="time-big" id="time">--:--</div>
+                <div class="date-side">
+                    <div class="date-main" id="date">----年--月--日</div>
+                    <div class="date-week" id="week">星期-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 第二格：今日道具（主格） ===== -->
+        <div class="panel item-panel">
+            <div class="panel-tag">今日道具</div>
+            <div class="item-header">
+                <div class="item-name" id="itemName">竹蜻蜓</div>
+                <div class="item-no" id="itemNo">NO.001</div>
+            </div>
+            <div class="item-body">
+                <div class="item-image-box">
+                    <img id="itemImg" src="images/item-zhuqingting.png" alt="道具图" />
+                </div>
+                <div class="item-text">
+                    <div class="item-desc-bubble" id="itemDesc">
+                        戴在头上即可时速80公里自由飞行，是作品中出场率最高的经典道具。
+                    </div>
+                    <div class="item-source-box" id="itemSource">
+                        漫画：第1卷第1话《从遥远的未来世界来》<br>
+                        动画：大山版第1话 / 水田版第1话
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 第三格：每日一句 ===== -->
+        <div class="panel quote-panel">
+            <div class="panel-tag">每日一句</div>
+            <div class="speech-bubble" id="quote">
+                人生就是一次次的选择，每一个选择都在塑造未来的自己。
+            </div>
+            <div class="quote-meta">
+                <span class="quote-author" id="quoteAuthor">—— 哆啦A梦</span>
+            </div>
+            <!-- <div class="quote-source-box" id="quoteSource">
+                《大雄的恐龙》1980
+            </div> -->
+        </div>
+
+
+
+    </div>
+
+    <!-- 刷新按钮栏 -->
+    <div class="refresh-bar">
+        <button class="refresh-btn" id="refreshItem">换道具</button>
+        <button class="refresh-btn" id="refreshQuote">换语录</button>
+        <button class="refresh-btn" id="refreshAll">全换</button>
+    </div>
+
+    <div class="comic-footer">— 未完待续 —</div>
+</div>
+
+<script>
+// ========== 时间日期 ==========
+function updateTime() {
+    var now = new Date();
+    var h = now.getHours();
+    var m = now.getMinutes();
+    h = h < 10 ? '0' + h : h;
+    m = m < 10 ? '0' + m : m;
+    document.getElementById('time').innerText = h + ':' + m;
+
+    var y = now.getFullYear();
+    var mo = now.getMonth() + 1;
+    var d = now.getDate();
+    mo = mo < 10 ? '0' + mo : mo;
+    d = d < 10 ? '0' + d : d;
+    document.getElementById('date').innerText = y + '年' + mo + '月' + d + '日';
+
+    var weeks = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+    document.getElementById('week').innerText = weeks[now.getDay()];
+}
+updateTime();
+setInterval(updateTime, 30000);
+
+// ========== 语录库 ==========
+var quotes = [
+    {text: "大雄，你真是的，又把零分考卷藏起来了！", author: "哆啦A梦", source: "《大雄的恐龙》1980"},
+    {text: "我想成为一个对别人有用的人。", author: "大雄", source: "《大雄的宇宙开拓史》1981"},
+    {text: "不管遇到什么困难，都不能放弃希望。", author: "哆啦A梦", source: "《大雄在魔境》1982"},
+    {text: "只要大家齐心协力，就没有做不到的事。", author: "胖虎", source: "《大雄的海底鬼岩城》1983"},
+    {text: "只要还活着，就一定能找到快乐的事情。", author: "哆啦A梦", source: "《大雄的魔界大冒险》1984"},
+    {text: "真正的自由，是靠自己的双手争取来的。", author: "大雄", source: "《大雄的宇宙小战争》1985"},
+    {text: "朋友不是靠数量，而是靠质量。", author: "胖虎", source: "《大雄与铁人兵团》1986"},
+    {text: "就算害怕，也要鼓起勇气向前走。", author: "大雄", source: "《大雄与龙骑士》1987"},
+    {text: "过去无法改变，但未来可以。", author: "哆啦A梦", source: "《大雄的平行西游记》1988"},
+    {text: "无论走到哪里，家乡永远是最温暖的地方。", author: "静香", source: "《大雄的日本诞生》1989"},
+    {text: "就算没有道具，我也要保护大家。", author: "大雄", source: "《大雄与动物行星》1990"},
+    {text: "梦想不是别人给的，是要自己去追的。", author: "哆啦A梦", source: "《大雄的天方夜谭》1991"},
+    {text: "真正的勇气，是在害怕的时候还能站起来。", author: "哆啦A梦", source: "《大雄与云之王国》1992"},
+    {text: "人的眼睛为什么长在前面？就是为了不断向前看。", author: "哆啦A梦", source: "《大雄与白金迷宫》1993"},
+    {text: "我才不是什么天才，我只是比别人努力一倍而已。", author: "出木衫", source: "《大雄与梦幻三剑士》1994"},
+    {text: "不管多远，我都会去接你。", author: "哆啦A梦", source: "《大雄的创世日记》1995"},
+    {text: "一个人的力量是有限的，但大家一起就能做到。", author: "胖虎", source: "《大雄与银河超特急》1996"},
+    {text: "生命是最宝贵的，谁也不能轻易夺走。", author: "静香", source: "《大雄的发条都市冒险记》1997"},
+    {text: "就算失败了，只要不放弃就还有机会。", author: "大雄", source: "《大雄的南海大冒险》1998"},
+    {text: "回家吧，回到那个有大家在的地方。", author: "哆啦A梦", source: "《大雄的宇宙漂流记》1999"},
+    {text: "真正的强大，是拥有一颗温柔的心。", author: "静香", source: "《大雄的太阳王传说》2000"},
+    {text: "天空是属于所有人的，不是某个人的私有物。", author: "胖虎", source: "《大雄与翼之勇者》2001"},
+    {text: "重要的不是结果，而是你努力过的过程。", author: "静香", source: "《大雄与机器人王国》2002"},
+    {text: "我想一直一直和大家在一起。", author: "哆啦A梦", source: "《大雄与风之使者》2003"},
+    {text: "只要相信自己，奇迹就一定会发生。", author: "大雄", source: "《大雄的猫狗时空传》2004"},
+    {text: "我不会让任何人伤害我的朋友。", author: "胖虎", source: "《大雄的恐龙》2006"},
+    {text: "就算是笨蛋，也有笨蛋的生存方式。", author: "胖虎", source: "《大雄的新魔界大冒险》2007"},
+    {text: "每一个生命都有它存在的意义。", author: "静香", source: "《大雄与绿巨人传》2008"},
+    {text: "谢谢你，哆啦A梦，有你在真好。", author: "大雄", source: "《哆啦A梦：伴我同行》2014"},
+    {text: "朋友之间，不需要说对不起。", author: "胖虎", source: "《大雄与天空的理想乡》2023"}
+    
+];
+
+
+function randomQuote() {
+    var idx = Math.floor(Math.random() * quotes.length);
+    document.getElementById('quote').innerText = quotes[idx].text;
+    document.getElementById('quoteAuthor').innerText =
+        '—— ' + quotes[idx].author + ' · ' + quotes[idx].source;
+}
+// function randomQuote() {
+//     var idx = Math.floor(Math.random() * quotes.length);
+//     document.getElementById('quote').innerText = quotes[idx].text;
+//     document.getElementById('quoteAuthor').innerText = '—— ' + quotes[idx].author;
+//     document.getElementById('quoteSource').innerText = quotes[idx].source;
+// }
+
+
+// ========== 道具库 ==========
+var doraemonItems = [
+    {
+        no: "NO.001",
+        name: "竹蜻蜓",
+        desc: "戴在头上即可时速80公里自由飞行，是作品中出场率最高的经典道具。",
+        img: "images/item-zhuqingting.png",
+        source: "漫画：第1卷第1话《从遥远的未来世界来》<br>动画：大山版第1话 / 水田版第1话"
+    },
+    {
+        no: "NO.002",
+        name: "任意门",
+        desc: "心中默念目的地，开门即可直达，最大通行距离可达10光年。",
+        img: "images/item-renyimen.png",
+        source: "漫画：第3卷《大雄的地底国探险》<br>动画：大山版第21话 / 水田版第7话"
+    },
+    {
+        no: "NO.003",
+        name: "时光机",
+        desc: "放置在大雄书桌抽屉中，可穿越时间与空间，往返过去与未来。",
+        img: "images/item-shiguangji.png",
+        source: "漫画：第1卷第1话首次登场<br>动画：全系列常驻道具"
+    },
+    {
+        no: "NO.004",
+        name: "记忆面包",
+        desc: "将面包印在书页上吃下，即可记住全部内容，吃多会随排泄失效。",
+        img: "images/item-jiyimianbao.png",
+        source: "漫画：第2卷《考试吃的记忆面包》<br>动画：大山版第18话 / 水田版第3话"
+    },
+    {
+        no: "NO.005",
+        name: "翻译魔芋",
+        desc: "吃下后可听懂并说出所有语言，也可翻译文字，甚至适配外星语。",
+        img: "images/item-fanyimoyu.png",
+        source: "漫画：第12卷《翻译魔芋》<br>动画：大山版第133话 / 水田版第12话"
+    },
+    {
+        no: "NO.006",
+        name: "缩小灯",
+        desc: "被光线照射的物体会按比例缩小，搭配放大灯可恢复原状。",
+        img: "images/item-suoxiaodeng.png",
+        source: "漫画：第5卷《象与叔叔》<br>动画：大山版第52话 / 水田版第78话"
+    },
+    {
+        no: "NO.007",
+        name: "如果电话亭",
+        desc: "投入硬币后说出假设，即可创造对应的平行世界，可随时撤销。",
+        img: "images/item-ruguodianhuating.png",
+        source: "漫画：第11卷《如果电话亭》<br>动画：大山版第87话 / 水田版第63话"
+    },
+    {
+        no: "NO.008",
+        name: "时光包袱巾",
+        desc: "包裹物体可使其变新或变旧，正面向内恢复，反面向内老化。",
+        img: "images/item-shiguangbaofujin.png",
+        source: "漫画：第2卷《时光包袱巾》<br>动画：大山版第30话 / 水田版第19话"
+    }
+];
+
+function randomItem() {
+    var idx = Math.floor(Math.random() * doraemonItems.length);
+    var item = doraemonItems[idx];
+    document.getElementById('itemNo').innerText = item.no;
+    document.getElementById('itemName').innerText = item.name;
+    document.getElementById('itemImg').src = item.img;
+    document.getElementById('itemDesc').innerText = item.desc;
+    document.getElementById('itemSource').innerHTML = item.source;
+}
+
+// ========== 按钮事件 ==========
+document.getElementById('refreshItem').addEventListener('click', randomItem);
+document.getElementById('refreshQuote').addEventListener('click', randomQuote);
+document.getElementById('refreshAll').addEventListener('click', function() {
+    randomItem();
+    randomQuote();
+});
+
+// 初始化
+randomItem();
+randomQuote();
+// Load doraemonItems from dierji/data_valid.json and overwrite runtime data
+(function(){
+  var jsonPath = 'dierji/data_valid.json';
+  function normalize(it){
+    return {
+      no: it.no || '',
+      name: it.name || '',
+      desc: it.desc || it.description || '',
+      img: it.img_filename || it.image_url || it.img || '',
+      source: it.source || ''
+    };
+  }
+  function apply(data){
+    if(!Array.isArray(data) || !data.length) return;
+    try{ window.doraemonItems = data.map(normalize); }catch(e){ window.doraemonItems = data; }
+    try{
+      var idx = (typeof getDailyIndex === 'function') ? getDailyIndex('item', window.doraemonItems.length) : Math.floor(Math.random()*window.doraemonItems.length);
+      var item = window.doraemonItems[idx];
+      if(item){
+        var el;
+        el = document.getElementById('itemName'); if(el) el.innerText = item.name;
+        el = document.getElementById('itemDesc'); if(el) el.innerText = item.desc;
+        el = document.getElementById('itemImg'); if(el && item.img) el.src = item.img;
+        el = document.getElementById('itemNo'); if(el) el.innerText = item.no || '';
+        el = document.getElementById('itemSource'); if(el) el.innerHTML = item.source || '';
+      }
+    }catch(e){}
+  }
+  function fetchJson(){
+    if(window.fetch){
+      fetch(jsonPath).then(function(r){ if(!r.ok) throw new Error('Network error'); return r.json(); }).then(apply).catch(function(){ xhrLoad(); });
+    } else { xhrLoad(); }
+  }
+  function xhrLoad(){
+    try{
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', jsonPath, true);
+      xhr.onreadystatechange = function(){ if(xhr.readyState===4 && (xhr.status===200 || xhr.status===0)){ try{ var d = JSON.parse(xhr.responseText); apply(d);}catch(e){} } };
+      xhr.send(null);
+    }catch(e){}
+  }
+  fetchJson();
+})();
+
+</script>
+
+</body>
+</html>
